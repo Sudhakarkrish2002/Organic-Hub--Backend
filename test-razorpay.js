@@ -1,93 +1,54 @@
-// Simple test script for Razorpay integration
-import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+import { getRazorpayInstance, isRazorpayConfigured, validateRazorpayConfig } from './src/config/razorpay.js';
 
-const BASE_URL = 'http://localhost:5000/api/v1';
+// Load environment variables
+dotenv.config();
 
-// Test 1: Check if server is running
-async function testHealth() {
-  try {
-    const response = await fetch(`${BASE_URL}/../health`);
-    const data = await response.json();
-    console.log('✅ Server Health:', data.message);
-  } catch (error) {
-    console.log('❌ Server not running:', error.message);
+console.log('🧪 Testing Razorpay Configuration...\n');
+
+// Test 1: Check environment variables
+console.log('1. Environment Variables Check:');
+console.log(`   RAZORPAY_KEY_ID: ${process.env.RAZORPAY_KEY_ID ? '✅ Set' : '❌ Missing'}`);
+console.log(`   RAZORPAY_KEY_SECRET: ${process.env.RAZORPAY_KEY_SECRET ? '✅ Set' : '❌ Missing'}\n`);
+
+// Test 2: Validate configuration
+console.log('2. Configuration Validation:');
+const isValid = validateRazorpayConfig();
+console.log(`   Configuration Valid: ${isValid ? '✅ Yes' : '❌ No'}\n`);
+
+// Test 3: Check if Razorpay is configured
+console.log('3. Razorpay Availability:');
+const isAvailable = isRazorpayConfigured();
+console.log(`   Razorpay Available: ${isAvailable ? '✅ Yes' : '❌ No'}\n`);
+
+// Test 4: Try to get Razorpay instance
+console.log('4. Razorpay Instance:');
+try {
+  const instance = getRazorpayInstance();
+  if (instance) {
+    console.log('   ✅ Razorpay instance created successfully');
+    console.log(`   Key ID: ${process.env.RAZORPAY_KEY_ID}`);
+  } else {
+    console.log('   ❌ Failed to create Razorpay instance');
   }
+} catch (error) {
+  console.log(`   ❌ Error creating Razorpay instance: ${error.message}`);
 }
 
-// Test 2: Check payment methods endpoint
-async function testPaymentMethods() {
-  try {
-    const response = await fetch(`${BASE_URL}/payments/methods`);
-    const data = await response.json();
-    console.log('✅ Payment Methods:', data.data.paymentMethods);
-  } catch (error) {
-    console.log('❌ Payment methods error:', error.message);
-  }
+console.log('\n📝 Next Steps:');
+if (!isValid) {
+  console.log('   1. Create a .env file in the backend directory');
+  console.log('   2. Add your Razorpay credentials:');
+  console.log('      RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_ID');
+  console.log('      RAZORPAY_KEY_SECRET=YOUR_SECRET_KEY');
+  console.log('   3. Restart the backend server');
+} else {
+  console.log('   ✅ Razorpay is properly configured!');
+  console.log('   🚀 You can now test payment endpoints');
 }
 
-// Test 3: Create a test payment order (requires authentication)
-async function testCreatePaymentOrder() {
-  try {
-    // First register a test user
-    const registerResponse = await fetch(`${BASE_URL}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: 'Test User',
-        email: 'test@example.com',
-        password: 'password123',
-        phone: '9999999999'
-      })
-    });
-
-    if (registerResponse.ok) {
-      const registerData = await registerResponse.json();
-      const token = registerData.data.token;
-      console.log('✅ User registered successfully');
-
-      // Now create a payment order
-      const paymentResponse = await fetch(`${BASE_URL}/payments/create-order`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          amount: 100, // ₹100
-          currency: 'INR',
-          receipt: 'test_receipt_123'
-        })
-      });
-
-      const paymentData = await paymentResponse.json();
-      
-      if (paymentData.success) {
-        console.log('✅ Payment order created:', paymentData.data);
-      } else {
-        console.log('❌ Payment order failed:', paymentData.message);
-      }
-    } else {
-      const errorData = await registerResponse.json();
-      console.log('❌ User registration failed:', errorData.message);
-    }
-  } catch (error) {
-    console.log('❌ Test error:', error.message);
-  }
-}
-
-// Run all tests
-async function runTests() {
-  console.log('🔄 Testing Razorpay Integration...\n');
-  
-  await testHealth();
-  await testPaymentMethods();
-  
-  console.log('\n⚠️  Note: Payment order test will fail until you add real Razorpay credentials');
-  console.log('   Update your .env file with actual RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET\n');
-  
-  await testCreatePaymentOrder();
-}
-
-runTests();
+console.log('\n🔗 Test Payment Endpoints:');
+console.log('   GET  /api/v1/payments/config - Get Razorpay config');
+console.log('   GET  /api/v1/payments/methods - Get payment methods');
+console.log('   POST /api/v1/payments/create-order - Create payment order');
+console.log('   POST /api/v1/payments/verify - Verify payment');

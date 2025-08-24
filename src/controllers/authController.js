@@ -2,11 +2,27 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 
+// In-memory user storage for development
+let inMemoryUsers = [];
+
 // Generate JWT Token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback-secret', {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
+};
+
+// Helper function to hash password
+const hashPassword = async (password) => {
+  const bcrypt = await import('bcryptjs');
+  const salt = await bcrypt.genSalt(12);
+  return await bcrypt.hash(password, salt);
+};
+
+// Helper function to compare password
+const comparePassword = async (password, hashedPassword) => {
+  const bcrypt = await import('bcryptjs');
+  return await bcrypt.compare(password, hashedPassword);
 };
 
 // @desc    Register user
@@ -15,37 +31,83 @@ const generateToken = (id) => {
 export const register = asyncHandler(async (req, res) => {
   const { name, email, password, phone, address } = req.body;
 
-  // Check if user already exists
-  const userExists = await User.findOne({ email });
-  if (userExists) {
-    return res.status(400).json({
-      success: false,
-      message: 'User already exists with this email'
+  try {
+    // Try to use MongoDB first
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists with this email'
+      });
+    }
+
+    // Create user in MongoDB
+    const user = await User.create({
+      name,
+      email,
+      password,
+      phone,
+      address
     });
-  }
 
-  // Create user
-  const user = await User.create({
-    name,
-    email,
-    password,
-    phone,
-    address
-  });
-
-  if (user) {
-    const token = generateToken(user._id);
+    if (user) {
+      const token = generateToken(user._id);
+      
+      res.status(201).json({
+        success: true,
+        message: 'User registered successfully',
+        data: {
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role
+          },
+          token
+        }
+      });
+    }
+  } catch (error) {
+    // If MongoDB fails, use in-memory storage
+    console.log('MongoDB not available, using in-memory storage');
     
+    // Check if user already exists in memory
+    const existingUser = inMemoryUsers.find(u => u.email === email);
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists with this email'
+      });
+    }
+
+    // Create user in memory
+    const hashedPassword = await hashPassword(password);
+    const newUser = {
+      _id: Date.now().toString(),
+      name,
+      email,
+      password: hashedPassword,
+      phone,
+      address,
+      role: 'user',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    inMemoryUsers.push(newUser);
+    const token = generateToken(newUser._id);
+
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: 'User registered successfully (in-memory)',
       data: {
         user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          role: user.role
+          _id: newUser._id,
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          role: newUser.role
         },
         token
       }
@@ -59,54 +121,99 @@ export const register = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  // Check for user email
-  const user = await User.findOne({ email }).select('+password');
-  
-  if (!user) {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid credentials'
-    });
-  }
-
-  // Check if user is active
-  if (!user.isActive) {
-    return res.status(401).json({
-      success: false,
-      message: 'Account is deactivated. Please contact support.'
-    });
-  }
-
-  // Check password
-  const isMatch = await user.comparePassword(password);
-  if (!isMatch) {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid credentials'
-    });
-  }
-
-  // Update last login
-  user.lastLogin = new Date();
-  await user.save();
-
-  const token = generateToken(user._id);
-
-  res.json({
-    success: true,
-    message: 'Login successful',
-    data: {
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        isEmailVerified: user.isEmailVerified
-      },
-      token
+  try {
+    // Try to use MongoDB first
+    const user = await User.findOne({ email }).select('+password');
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
     }
-  });
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Account is deactivated. Please contact support.'
+      });
+    }
+
+    // Check password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+
+    const token = generateToken(user._id);
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          isEmailVerified: user.isEmailVerified
+        },
+        token
+      }
+    });
+  } catch (error) {
+    // If MongoDB fails, use in-memory storage
+    console.log('MongoDB not available, using in-memory storage for login');
+    
+    // Find user in memory
+    const user = inMemoryUsers.find(u => u.email === email);
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    // Check password
+    const isMatch = await comparePassword(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    // Update last login
+    user.lastLogin = new Date();
+
+    const token = generateToken(user._id);
+
+    res.json({
+      success: true,
+      message: 'Login successful (in-memory)',
+      data: {
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          isEmailVerified: false
+        },
+        token
+      }
+    });
+  }
 });
 
 // @desc    Get current user

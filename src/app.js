@@ -1,5 +1,5 @@
 import express from 'express';
-import cors from 'cors';
+import cors from './middleware/cors.js';
 import morgan from 'morgan';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
@@ -21,10 +21,7 @@ connectDB();
 app.use(helmet());
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
+app.use(cors);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

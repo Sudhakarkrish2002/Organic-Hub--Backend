@@ -1,20 +1,159 @@
-import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import Order from '../models/Order.js';
+import Cart from '../models/Cart.js';
+import Product from '../models/Product.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
+import { getRazorpayInstance, isRazorpayConfigured } from '../config/razorpay.js';
 
-// Initialize Razorpay only when credentials are available
-let razorpay = null;
+// @desc    Complete payment process (COD or Online)
+// @route   POST /api/payments/process
+// @access  Private
+export const processPayment = asyncHandler(async (req, res) => {
+  const { 
+    paymentMethod, 
+    shippingAddress, 
+    notes,
+    razorpayOrderId,
+    razorpayPaymentId,
+    razorpaySignature 
+  } = req.body;
 
-const getRazorpayInstance = () => {
-  if (!razorpay && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
-    razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
+  // Validate payment method
+  if (!['razorpay', 'cod'].includes(paymentMethod)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid payment method'
     });
   }
-  return razorpay;
-};
+
+  // Get user's cart
+  const cart = await Cart.findOne({ user: req.user._id })
+    .populate('items.product');
+
+  if (!cart || cart.items.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Cart is empty'
+    });
+  }
+
+  // Validate stock and prepare order items
+  const orderItems = [];
+  let subtotal = 0;
+
+  for (const item of cart.items) {
+    const product = item.product;
+    
+    if (!product.isAvailable) {
+      return res.status(400).json({
+        success: false,
+        message: `${product.name} is not available`
+      });
+    }
+
+    if (product.stock < item.quantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Only ${product.stock} ${product.name} available in stock`
+      });
+    }
+
+    orderItems.push({
+      product: product._id,
+      name: product.name,
+      quantity: item.quantity,
+      price: product.price,
+      weight: product.weight,
+      weightUnit: product.weightUnit
+    });
+
+    subtotal += product.price * item.quantity;
+  }
+
+  // Calculate costs
+  const shippingCost = subtotal > 500 ? 0 : 50;
+  const tax = subtotal * 0.05; // 5% GST
+  const discount = cart.discountAmount || 0;
+  const codCharge = paymentMethod === 'cod' ? 20 : 0;
+  const totalAmount = subtotal + shippingCost + tax - discount + codCharge;
+
+  // Handle payment verification for online payments
+  if (paymentMethod === 'razorpay') {
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment verification details are required for online payments'
+      });
+    }
+
+    // Verify Razorpay signature
+    const body = razorpayOrderId + "|" + razorpayPaymentId;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body.toString())
+      .digest("hex");
+
+    if (expectedSignature !== razorpaySignature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment verification failed: Invalid signature'
+      });
+    }
+  }
+
+  // Create order
+  const order = await Order.create({
+    user: req.user._id,
+    items: orderItems,
+    shippingAddress: {
+      street: shippingAddress.address,
+      city: shippingAddress.city,
+      state: shippingAddress.state,
+      zipCode: shippingAddress.pincode,
+      country: 'India'
+    },
+    paymentMethod,
+    paymentStatus: paymentMethod === 'cod' ? 'pending' : 'completed',
+    orderStatus: paymentMethod === 'cod' ? 'confirmed' : 'confirmed',
+    subtotal,
+    shippingCost,
+    tax,
+    discount,
+    totalAmount,
+    notes,
+    razorpayOrderId: paymentMethod === 'razorpay' ? razorpayOrderId : undefined,
+    razorpayPaymentId: paymentMethod === 'razorpay' ? razorpayPaymentId : undefined,
+    isSeasonalOrder: cart.items.some(item => item.product.isSeasonal)
+  });
+
+  // Update product stock
+  for (const item of cart.items) {
+    await Product.findByIdAndUpdate(item.product._id, {
+      $inc: { stock: -item.quantity }
+    });
+  }
+
+  // Clear cart
+  await cart.clearCart();
+
+  // Populate order details
+  await order.populate({
+    path: 'items.product',
+    select: 'name images'
+  });
+
+  res.status(201).json({
+    success: true,
+    message: paymentMethod === 'cod' 
+      ? 'Order placed successfully! You will pay on delivery.' 
+      : 'Payment successful! Order confirmed.',
+    data: { 
+      order,
+      paymentMethod,
+      totalAmount
+    }
+  });
+});
 
 // @desc    Create payment order
 // @route   POST /api/payments/create-order
@@ -218,7 +357,7 @@ export const getPaymentMethods = asyncHandler(async (req, res) => {
       name: 'Credit/Debit Card & UPI',
       description: 'Pay securely with cards, UPI, net banking',
       icon: '💳',
-      enabled: true
+      enabled: isRazorpayConfigured()
     },
     {
       id: 'cod',
@@ -232,6 +371,31 @@ export const getPaymentMethods = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: { paymentMethods }
+  });
+});
+
+// @desc    Get Razorpay configuration
+// @route   GET /api/payments/config
+// @access  Public
+export const getRazorpayConfig = asyncHandler(async (req, res) => {
+  if (!isRazorpayConfigured()) {
+    return res.status(503).json({
+      success: false,
+      message: 'Payment service not configured'
+    });
+  }
+
+  res.json({
+    success: true,
+    data: {
+      keyId: process.env.RAZORPAY_KEY_ID,
+      currency: 'INR',
+      name: 'Organic Hub',
+      description: 'Organic products payment',
+      theme: {
+        color: '#16a34a'
+      }
+    }
   });
 });
 

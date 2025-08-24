@@ -1,210 +1,187 @@
-# Organic Mart Backend API
+# Organic Hub Backend API
 
-A comprehensive Node.js/Express.js backend API for the Organic Mart e-commerce platform, built with the MERN stack.
+A comprehensive backend API for the Organic Hub e-commerce platform, built with Node.js, Express, and MongoDB.
 
-## Features
+## 🚀 Features
 
-- **User Authentication & Authorization**: JWT-based authentication with role-based access control
-- **Product Management**: CRUD operations for products with categories, seasonal support, and organic certification
-- **Shopping Cart**: Full cart functionality with bulk discounts and coupon support
-- **Order Management**: Complete order lifecycle from creation to delivery
-- **Payment Integration**: Razorpay payment gateway integration with webhook support
-- **Review System**: Product reviews and ratings with moderation
-- **Admin Dashboard**: Comprehensive admin panel with analytics and user management
-- **Security**: Rate limiting, input validation, CORS, and security headers
-- **Database**: MongoDB with Mongoose ODM
+- **Authentication & Authorization** - JWT-based user management with role-based access control
+- **Product Management** - CRUD operations for organic products with categories and seasonal promotions
+- **Order Management** - Complete order lifecycle with status tracking
+- **Cart System** - Shopping cart with bulk discounts and seasonal offers
+- **Payment Integration** - Razorpay payment gateway integration
+- **File Upload** - Cloudinary integration for product images
+- **Seasonal Promotions** - Dynamic seasonal product recommendations
+- **Admin Dashboard** - Comprehensive admin panel for business management
+- **API Security** - Rate limiting, CORS, and input validation
+- **Logging & Monitoring** - Comprehensive logging and error handling
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 - **Runtime**: Node.js
 - **Framework**: Express.js
-- **Database**: MongoDB
-- **ODM**: Mongoose
-- **Authentication**: JWT (jsonwebtoken)
-- **Password Hashing**: bcryptjs
-- **Validation**: express-validator
-- **Rate Limiting**: express-rate-limit
-- **Security**: helmet
-- **Logging**: winston
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT (JSON Web Tokens)
+- **File Upload**: Cloudinary
 - **Payment**: Razorpay
-- **File Upload**: Multer + Cloudinary
+- **Validation**: Joi
+- **Logging**: Winston
+- **Testing**: Jest
 
-## Prerequisites
+## 📋 Prerequisites
 
 - Node.js (v16 or higher)
-- MongoDB (v4.4 or higher)
-- npm or yarn
+- MongoDB (local or Atlas)
+- Cloudinary account
+- Razorpay account
 
-## Installation
+## 🚀 Quick Start
 
-1. Clone the repository and navigate to the backend directory:
+### 1. Clone the repository
 ```bash
-cd backend
+git clone <repository-url>
+cd Organic-Hub--Backend
 ```
 
-2. Install dependencies:
+### 2. Install dependencies
 ```bash
 npm install
 ```
 
-3. Create a `.env` file based on `.env.example`:
-```bash
-cp .env.example .env
-```
+### 3. Environment Configuration
+Create a `.env` file in the root directory:
 
-4. Configure environment variables in `.env`:
 ```env
-PORT=5000
+# Server Configuration
+PORT=3000
 NODE_ENV=development
 
-# MongoDB
-MONGODB_URI=mongodb://127.0.0.1:27017/organic_mart
+# Database Configuration
+MONGODB_URI=mongodb://localhost:27017/organic-hub
 
-# JWT
-JWT_SECRET=your_jwt_secret_here
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-here
 JWT_EXPIRES_IN=7d
 
-# Cloudinary (for image uploads)
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+# Frontend URL
+FRONTEND_URL=http://localhost:5173
 
-# Email (SMTP)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_app_password
-FROM_EMAIL=your_email@gmail.com
+# Cloudinary Configuration (for image uploads)
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 
-# Razorpay
-RAZORPAY_KEY_ID=your_razorpay_key_id
-RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+# Razorpay Configuration (for payments)
+RAZORPAY_KEY_ID=your-razorpay-key-id
+RAZORPAY_KEY_SECRET=your-razorpay-secret
 
-# Frontend URL (for CORS)
-FRONTEND_URL=http://localhost:3000
+# File Upload Configuration
+MAX_FILE_SIZE=5242880
+UPLOAD_PATH=uploads/
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Logging
+LOG_LEVEL=info
+LOG_FILE_PATH=logs/
+
+# Security
+BCRYPT_SALT_ROUNDS=12
 ```
 
-5. Start the development server:
+### 4. Start the server
 ```bash
+# Development mode
 npm run dev
+
+# Production mode
+npm start
 ```
 
-The API will be available at `http://localhost:5000`
+The server will start on `http://localhost:3000`
 
-## API Endpoints
+## 📚 API Documentation
 
-### Authentication
-- `POST /api/v1/auth/register` - User registration
-- `POST /api/v1/auth/login` - User login
-- `GET /api/v1/auth/me` - Get current user profile
-- `PUT /api/v1/auth/profile` - Update user profile
-- `PUT /api/v1/auth/change-password` - Change password
-- `POST /api/v1/auth/logout` - User logout
+### Authentication Endpoints
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+- `POST /api/auth/forgot-password` - Password reset request
+- `POST /api/auth/reset-password` - Password reset
 
-### Products
-- `GET /api/v1/products` - Get all products (with filtering and pagination)
-- `GET /api/v1/products/:id` - Get single product
-- `GET /api/v1/products/featured` - Get featured products
-- `GET /api/v1/products/seasonal/:season` - Get seasonal products
-- `GET /api/v1/products/search` - Search products
-- `POST /api/v1/products` - Create product (Admin only)
-- `PUT /api/v1/products/:id` - Update product (Admin only)
-- `DELETE /api/v1/products/:id` - Delete product (Admin only)
+### Product Endpoints
+- `GET /api/products` - Get all products with filters
+- `GET /api/products/:id` - Get product by ID
+- `POST /api/products` - Create new product (Admin only)
+- `PUT /api/products/:id` - Update product (Admin only)
+- `DELETE /api/products/:id` - Delete product (Admin only)
 
-### Categories
-- `GET /api/v1/categories` - Get all categories
-- `GET /api/v1/categories/:id` - Get single category
-- `GET /api/v1/categories/featured` - Get featured categories
-- `GET /api/v1/categories/slug/:slug` - Get category by slug
-- `POST /api/v1/categories` - Create category (Admin only)
-- `PUT /api/v1/categories/:id` - Update category (Admin only)
-- `DELETE /api/v1/categories/:id` - Delete category (Admin only)
+### Order Endpoints
+- `GET /api/orders` - Get user orders
+- `POST /api/orders` - Create new order
+- `GET /api/orders/:id` - Get order details
+- `PUT /api/orders/:id/status` - Update order status (Admin only)
 
-### Cart
-- `GET /api/v1/cart` - Get user cart
-- `POST /api/v1/cart/add` - Add item to cart
-- `PUT /api/v1/cart/update/:productId` - Update cart item quantity
-- `DELETE /api/v1/cart/remove/:productId` - Remove item from cart
-- `DELETE /api/v1/cart/clear` - Clear cart
-- `POST /api/v1/cart/apply-coupon` - Apply coupon to cart
-- `DELETE /api/v1/cart/remove-coupon` - Remove coupon from cart
+### Cart Endpoints
+- `GET /api/cart` - Get user cart
+- `POST /api/cart/add` - Add item to cart
+- `PUT /api/cart/update` - Update cart item
+- `DELETE /api/cart/remove/:itemId` - Remove item from cart
 
-### Orders
-- `POST /api/v1/orders` - Create new order
-- `GET /api/v1/orders` - Get user orders
-- `GET /api/v1/orders/:id` - Get single order
-- `PUT /api/v1/orders/:id/cancel` - Cancel order
-- `PUT /api/v1/orders/:id/status` - Update order status (Admin only)
-- `GET /api/v1/orders/admin/all` - Get all orders (Admin only)
+### Admin Endpoints
+- `GET /api/admin/dashboard` - Admin dashboard stats
+- `GET /api/admin/users` - Get all users
+- `GET /api/admin/orders` - Get all orders
+- `PUT /api/admin/users/:id` - Update user (Admin only)
 
-### Payments
-- `POST /api/v1/payments/create-order` - Create Razorpay payment order
-- `POST /api/v1/payments/verify` - Verify payment signature
-- `GET /api/v1/payments/:paymentId` - Get payment details
-- `POST /api/v1/payments/:paymentId/refund` - Refund payment (Admin only)
-- `GET /api/v1/payments/methods` - Get available payment methods
-- `POST /api/v1/payments/webhook` - Razorpay webhook handler
+## 🔧 Configuration
 
-### Reviews
-- `GET /api/v1/reviews/product/:productId` - Get product reviews
-- `POST /api/v1/reviews` - Create review
-- `PUT /api/v1/reviews/:id` - Update review
-- `DELETE /api/v1/reviews/:id` - Delete review
-- `GET /api/v1/reviews/user` - Get user reviews
-- `POST /api/v1/reviews/:id/report` - Report review
-- `GET /api/v1/reviews/admin/all` - Get all reviews (Admin only)
+### Database Configuration
+The application supports both local MongoDB and MongoDB Atlas:
 
-### Admin
-- `GET /api/v1/admin/dashboard` - Get dashboard statistics
-- `GET /api/v1/admin/users` - Get all users
-- `PUT /api/v1/admin/users/:id/status` - Update user status
-- `PUT /api/v1/admin/users/:id/role` - Update user role
-- `DELETE /api/v1/admin/users/:id` - Delete user
+```javascript
+// Local MongoDB
+MONGODB_URI=mongodb://localhost:27017/organic-hub
 
-## Database Models
+// MongoDB Atlas
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/organic-hub
+```
 
-- **User**: User accounts with authentication and profile information
-- **Product**: Products with categories, pricing, stock, and seasonal information
-- **Category**: Product categories with hierarchical support
-- **Cart**: Shopping cart with items and discount calculations
-- **Order**: Orders with status tracking and payment information
-- **Review**: Product reviews and ratings
-- **Coupon**: Discount coupons and promotional codes
+### Cloudinary Configuration
+For image uploads, configure Cloudinary:
 
-## Security Features
+```javascript
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+```
 
-- JWT-based authentication
-- Password hashing with bcrypt
-- Input validation and sanitization
-- Rate limiting for API endpoints
-- CORS configuration
-- Security headers with helmet
-- Role-based access control
-- Payment signature verification
+### Razorpay Configuration
+For payment processing, configure Razorpay:
 
-## Error Handling
+```javascript
+RAZORPAY_KEY_ID=your-razorpay-key-id
+RAZORPAY_KEY_SECRET=your-razorpay-secret
+```
 
-- Centralized error handling middleware
-- Consistent error response format
-- Input validation errors
-- Database error handling
-- JWT error handling
+## 🧪 Testing
 
-## Rate Limiting
+Run the test suite:
 
-- General API: 100 requests per 15 minutes
-- Authentication: 5 requests per 15 minutes
-- Search: 30 requests per minute
-- File uploads: 10 requests per 15 minutes
+```bash
+# Run all tests
+npm test
 
-## Development
+# Run tests in watch mode
+npm run test:watch
 
-### Scripts
-- `npm run dev` - Start development server with nodemon
-- `npm start` - Start production server
-- `npm test` - Run tests
+# Run tests with coverage
+npm run test:coverage
+```
 
-### File Structure
+## 📁 Project Structure
+
 ```
 src/
 ├── config/          # Configuration files
@@ -212,34 +189,76 @@ src/
 ├── middleware/      # Custom middleware
 ├── models/          # Database models
 ├── routes/          # API routes
+├── services/        # Business logic
 ├── utils/           # Utility functions
-├── app.js           # Express app configuration
-└── server.js        # Server entry point
+└── app.js          # Express app setup
 ```
 
-## Testing
+## 🔒 Security Features
 
-Run the test suite:
+- **JWT Authentication** - Secure token-based authentication
+- **Role-based Access Control** - Admin and user role management
+- **Input Validation** - Request data validation using Joi
+- **Rate Limiting** - API rate limiting to prevent abuse
+- **CORS Protection** - Cross-origin resource sharing configuration
+- **Helmet Security** - Security headers middleware
+- **Password Hashing** - Bcrypt password encryption
+
+## 📊 Logging
+
+The application uses Winston for comprehensive logging:
+
+- **Access Logs** - HTTP request logs
+- **Error Logs** - Application error logs
+- **Combined Logs** - All logs combined
+- **Log Levels** - Configurable log levels (error, warn, info, debug)
+
+## 🚀 Deployment
+
+### Environment Variables
+Ensure all required environment variables are set in production:
+
 ```bash
-npm test
+NODE_ENV=production
+MONGODB_URI=your-production-mongodb-uri
+JWT_SECRET=your-production-jwt-secret
 ```
 
-## Production Deployment
+### PM2 Process Manager
+For production deployment, use PM2:
 
-1. Set `NODE_ENV=production` in your environment
-2. Ensure all environment variables are properly configured
-3. Use a process manager like PM2
-4. Set up proper logging and monitoring
-5. Configure MongoDB for production use
-6. Set up SSL/TLS certificates
+```bash
+npm install -g pm2
+pm2 start start.js --name "organic-hub-backend"
+pm2 startup
+pm2 save
+```
 
-## Contributing
+## 🤝 Contributing
 
-1. Follow the existing code style
-2. Add tests for new features
-3. Update documentation as needed
-4. Ensure all tests pass before submitting
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License.
+
+## 🆘 Support
+
+For support and questions:
+- Create an issue in the repository
+- Contact the development team
+- Check the documentation
+
+## 🔄 Changelog
+
+### Version 1.0.0
+- Initial release
+- Core API functionality
+- Authentication system
+- Product management
+- Order processing
+- Payment integration

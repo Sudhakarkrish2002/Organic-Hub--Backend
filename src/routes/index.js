@@ -7,6 +7,10 @@ import orderRoutes from './orderRoutes.js';
 import paymentRoutes from './paymentRoutes.js';
 import reviewRoutes from './reviewRoutes.js';
 import adminRoutes from './adminRoutes.js';
+import seasonalRoutes from './seasonalRoutes.js';
+import uploadRoutes from './uploadRoutes.js';
+import userRoutes from './userRoutes.js';
+import discountRoutes from './discountRoutes.js';
 
 const router = express.Router();
 
@@ -32,6 +36,10 @@ router.use(`${API_VERSION}/orders`, orderRoutes);
 router.use(`${API_VERSION}/payments`, paymentRoutes);
 router.use(`${API_VERSION}/reviews`, reviewRoutes);
 router.use(`${API_VERSION}/admin`, adminRoutes);
+router.use(`${API_VERSION}/seasonal`, seasonalRoutes);
+router.use(`${API_VERSION}/upload`, uploadRoutes);
+router.use(`${API_VERSION}/users`, userRoutes);
+router.use(`${API_VERSION}/discounts`, discountRoutes);
 
 // 404 handler for undefined routes
 router.use('*', (req, res) => {

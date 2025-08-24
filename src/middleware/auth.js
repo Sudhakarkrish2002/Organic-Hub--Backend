@@ -100,3 +100,6 @@ export const optionalAuth = async (req, res, next) => {
     next();
   }
 };
+
+// Admin middleware alias for authorize('admin')
+export const admin = authorize('admin');
