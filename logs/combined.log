@@ -73,3 +73,8 @@
 {"level":"info","message":"✅ Seeded 9 orders","service":"organic-mart-api","timestamp":"2025-08-24T18:37:31.599Z"}
 {"level":"info","message":"MongoDB Connected: localhost","service":"organic-mart-api","timestamp":"2025-08-24T18:42:43.485Z"}
 {"level":"info","message":"MongoDB Connected: localhost","service":"organic-mart-api","timestamp":"2025-08-24T18:47:02.686Z"}
+{"level":"info","message":"MongoDB Connected: localhost","service":"organic-mart-api","timestamp":"2025-08-25T06:21:23.122Z"}
+{"level":"info","message":"MongoDB Connected: localhost","service":"organic-mart-api","timestamp":"2025-08-25T13:35:04.411Z"}
+{"level":"info","message":"MongoDB Connected: localhost","service":"organic-mart-api","timestamp":"2025-08-25T13:41:10.854Z"}
+{"level":"info","message":"MongoDB Connected: ac-tezuufa-shard-00-00.mnpqz7y.mongodb.net","service":"organic-mart-api","timestamp":"2025-08-25T14:10:05.346Z"}
+{"level":"info","message":"MongoDB Connected: ac-tezuufa-shard-00-01.mnpqz7y.mongodb.net","service":"organic-mart-api","timestamp":"2025-08-25T14:26:17.743Z"}
